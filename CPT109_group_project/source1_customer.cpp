@@ -107,7 +107,6 @@ public:
 class Manager : public User {
 private:
     string password; // 添加密码属性
-
 public:
     Manager(string uname, string pwd, string mail, int user_age) : User(uname, mail, user_age), password(pwd) {}
 
@@ -292,9 +291,9 @@ public:
         userinfo_filename << endl;
     }
 
-    void customer_operating_UI(){
-        print_dish_menu();
-    }
+    // void customer_operating_UI(){
+    //     print_dish_menu();
+    // }
 };
 
 // bool authenticate(User* user) {
@@ -376,13 +375,105 @@ void customer_logging(User* user){
         system("cls");
 }
 
+void printMenu() {
+    cout << "\nMenu:" << endl;
+    cout << "1. Edit User Info" << endl;
+    cout << "2. Delete Dish" << endl;
+    cout << "3. Add New Dish" << endl; // 添加新选项
+    cout << "4. Exit" << endl;
+    cout << "Enter your choice: ";
+}
+
+void ChefMenu(User* user) {
+    int menuChoice;
+    do {
+        printMenu();
+        cin >> menuChoice;
+        switch (menuChoice) {
+        case 1:
+            user->editUserInfo(); // 修改用户信息
+            cout << "Updated User Info:" << endl;
+            user->getUserInfo(); // 打印更新后的用户信息
+            break;
+        case 2: {
+            int dishId;
+            cout << "Enter Dish ID to delete: ";
+            cin >> dishId;
+            dynamic_cast<Chef*>(user)->deleteDish(dishId); // 删除菜品
+            break;
+        }
+        case 3:
+            int newDishId;
+            cout << "Enter Dish ID for the new dish: ";
+            cin >> newDishId;
+            dynamic_cast<Chef*>(user)->addNewDish(newDishId); // 添加菜品
+            break;
+        case 4:
+            cout << "Exiting program..." << endl;
+            break;
+        default:
+            cout << "Invalid choice. Please try again." << endl;
+        }
+    } while (menuChoice != 4);
+}
+
+bool authenticate(User* user) {
+    // 只有Manager和Chef需要密码验证
+    if (dynamic_cast<Manager*>(user) || dynamic_cast<Chef*>(user)) {
+        string correctPassword = user->getPassword();
+        string inputPassword;
+        int attempts = 0;
+        while (attempts < 3) {
+            cout << "Enter your password: ";
+            cin >> inputPassword;
+            if (inputPassword == correctPassword) {
+                return true;
+            }
+            else {
+                attempts++;
+                cout << "Incorrect password. Please try again." << endl;
+            }
+        }
+        cout << "Too many incorrect attempts. Exiting..." << endl;
+        return false;
+    }
+    return true; // Customer不需要密码验证
+}
+
+void chef_logging(User* user){
+        user = new Chef("chef123", "654321", "chef@example.com", 30);
+        if (authenticate(user)) {
+        cout << "Access granted." << endl;
+        user->editUserInfo(); // 用户输入个人信息
+        cout << "Your User Info:" << endl;
+        user->getUserInfo(); // 打印用户信息
+
+        // 检查用户信息是否已存在
+        if (!user->userInfoExists("Person_Inf.txt")) {
+            ofstream outFile("Person_Inf.txt", ios::app);
+            if (!outFile) {
+                cerr << "Error opening file." << endl;
+                delete user;
+            }
+            user->writeToFile(outFile); // 将用户信息写入文件
+            outFile.close();
+            cout << "User Info added to file." << endl;
+        }
+        else {
+            cout << "User Info already exists in file." << endl;
+        }
+        ChefMenu(user);// 处理菜单
+    }
+    else {
+        cout << "Access denied." << endl;
+    }
+}
 int main() {
     int choice;
     cout << "Select your role:" << endl;
     cout << "1. Manager" << endl;
     cout << "2. Chef" << endl;
     cout << "3. Customer" << endl;
-    cout << "4. register an account" << endl;
     cout << "Enter your choice: ";
     cin >> choice;
 
@@ -394,14 +485,9 @@ int main() {
         break;
     case 2:
         chef_logging(user);
-        user = new Chef("chef123", "654321", "chef@example.com", 30);
         break;
     case 3:{
         customer_logging(user);
-        break;
-    }
-    case 4:{
-        register_operatingUI(user);
         break;
     }
     default:
@@ -409,51 +495,7 @@ int main() {
         return 0;
     }
 
-    // if (authenticate(user)) {
-    //     cout << "Access granted." << endl;
-    //     user->editUserInfo(); // 用户输入个人信息
-    //     cout << "Your User Info:" << endl;
-    //     user->getUserInfo(); // 打印用户信息
-
-    //     // 检查用户信息是否已存在
-    //     if (!user->userInfoExists("Person_Inf.txt")) {
-    //         ofstream outFile("Person_Inf.txt", ios::app);
-    //         if (!outFile) {
-    //             cerr << "Error opening file." << endl;
-    //             delete user;
-    //             return 1;
-    //         }
-    //         user->writeToFile(outFile); // 将用户信息写入文件
-    //         outFile.close();
-    //         cout << "User Info added to file." << endl;
-    //     }
-    //     else {
-    //         cout << "User Info already exists in file." << endl;
-    //     }
-
-    //     int menuChoice;
-    //     do {
-    //         printMenu();
-    //         cin >> menuChoice;
-    //         switch (menuChoice) {
-    //         case 1:
-    //             user->editUserInfo(); // 修改用户信息
-    //             cout << "Updated User Info:" << endl;
-    //             user->getUserInfo(); // 打印更新后的用户信息
-    //             break;
-    //         case 2:
-    //             cout << "Exiting program..." << endl;
-    //             break;
-    //         default:
-    //             cout << "Invalid choice. Please try again." << endl;
-    //         }
-    //     } while (menuChoice != 2);
-    // }
-    // else {
-    //     cout << "Access denied." << endl;
-    // }
-
-    // delete user; // 释放内存
+    delete user; // 释放内存
 
     return 0;
 }

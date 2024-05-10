@@ -1,12 +1,12 @@
-Dish Name: chifan
-Dish ID: 3
+Dish Name: icecream
+Dish ID: 1
 Price: 40
-Ingredients: shit
+Ingredients: sweet
 Cost: 10
 
-Dish Name: chi
-Dish ID: 4
+Dish Name: salad
+Dish ID: 2
 Price: 30
-Ingredients: nn
+Ingredients: fresh
 Cost: 10
 
