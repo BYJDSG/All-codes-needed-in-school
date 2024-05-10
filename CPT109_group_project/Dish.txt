@@ -1,0 +1,12 @@
+Dish Name: chifan
+Dish ID: 3
+Price: 40
+Ingredients: shit
+Cost: 10
+
+Dish Name: chi
+Dish ID: 4
+Price: 30
+Ingredients: nn
+Cost: 10
+
