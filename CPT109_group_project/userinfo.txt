@@ -1,0 +1,12 @@
+Username: BYJ
+Email: 18734@gmail.com
+Age: 124
+
+Username: CQY
+Email: 17894@GMAIL.COM
+Age: 284
+
+Username: john
+Email: 17894@GMAIL.COM
+Age: 123
+
