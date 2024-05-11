@@ -10,3 +10,9 @@ Price: 30
 Ingredients: fresh
 Cost: 10
 
+Dish Name: fruit
+Dish ID: 3
+Price: 100
+Ingredients: fresh
+Cost: 20
+

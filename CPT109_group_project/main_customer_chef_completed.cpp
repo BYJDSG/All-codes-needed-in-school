@@ -4,7 +4,121 @@
 #include <limits> // For numeric_limits
 #include <cctype> // for character handling functions
 #include <vector>
+#include <ctime>
 using namespace std;
+
+
+class Order {
+private:
+    int order_id;
+    string email;
+    int year, month, day;
+    string time;
+    int dishID;
+    double price, cost;
+    bool paid;
+
+public:
+    // 构造函数
+    Order(int orderid,const string& email, int year, int month, int day, const string& time,
+          int dishID, double price, double cost, bool paid)
+    : email(email), year(year), month(month), day(day), time(time),
+      dishID(dishID), price(price), cost(cost), paid(paid), order_id(orderid){}
+
+    // 获取器方法
+    int getID() const { return order_id; }
+    string getEmail() const { return email; }
+    int getYear() const { return year; }
+    int getMonth() const { return month; }
+    int getDay() const { return day; }
+    string getTime() const { return time; }
+    int getDishID() const { return dishID; }
+    double getPrice() const { return price; }
+    double getCost() const { return cost; }
+    bool isPaid() const { return paid; }
+
+    // 设置器方法
+    void setEmail(const string& val) { email = val; }
+    void setYear(int val) { year = val; }
+    void setMonth(int val) { month = val; }
+    void setDay(int val) { day = val; }
+    void setTime(const string& val) { time = val; }
+    void setDishID(int val) { dishID = val; }
+    void setPrice(double val) { price = val; }
+    void setCost(double val) { cost = val; }
+    void setPaid(bool val) { paid = val; }
+
+    // 显示订单详情
+    void displayOrderDetails() const {
+        cout << "Order Details:" << endl;
+        cout << "Order ID: " << order_id << endl;
+        cout << "Email: " << email << endl;
+        cout << "Date: " << year << "-" << month << "-" << day << endl;
+        cout << "Time: " << time << endl;
+        cout << "Dish ID: " << dishID << endl;
+        cout << "Price: " << price << endl;
+        cout << "Cost: " << cost << endl;
+        cout << "Paid: " << (paid ? "Yes" : "No") << endl;
+        cout << endl;
+    }
+
+    // 将订单信息写入文件
+    void writeToFile(const string& filename) const {
+        ofstream file(filename, ios::app);
+        if (!file.is_open()) {
+            cerr << "Unable to open the file for writing." << endl;
+            return;
+        }
+
+        file << "Email: " << email << "\n";
+        file << "ID: " << order_id << ";\n";
+        file << "Year: " << year << "\n";
+        file << "Month: " << month << "\n";
+        file << "Day: " << day << "\n";
+        file << "Time: " << time << "\n";
+        file << "Dish ID: " << dishID << "\n";
+        file << "Price: " << price << "\n";
+        file << "Cost: " << cost << "\n";
+        file << "Paid: " << (paid ? "1" : "0") << "\n\n";
+
+        file.close();
+    }
+
+        // 从文件中删除指定ID的订单
+    void deleteOrderFromFile(const string& filename) {
+        vector<string> lines; // 用于保存文件内容
+        ifstream file(filename);
+        if (!file.is_open()) {
+            cerr << "Unable to open the file for reading." << endl;
+            return;
+        }
+
+        string line;
+        while (getline(file, line)) {
+            if (line.find("ID: " + to_string(order_id) + ";") == string::npos) {
+                // 如果当前行不包含指定ID的订单信息，则将其保存到容器中
+                lines.push_back(line);
+            } else {
+                // 如果当前行包含指定ID的订单信息，则跳过当前订单的完整信息
+                for (int i = 0; i < 8; ++i) {
+                    getline(file, line);
+                }
+            }
+        }
+        file.close();
+
+        // 将修改后的内容写回到文件中
+        ofstream outfile(filename);
+        if (!outfile.is_open()) {
+            cerr << "Unable to open the file for writing." << endl;
+            return;
+        }
+        for (const string& l : lines) {
+            outfile << l << "\n";
+        }
+        outfile.close();
+    }
+};
 
 class Dish {
 private:
@@ -41,6 +155,14 @@ public:
 
     int getId() const {
         return id;
+    }
+
+    double getPrice() const {
+        return price;
+    }
+
+    double getCost() const {
+        return cost;
     }
 };
 
@@ -102,6 +224,49 @@ public:
         infile.close();
         return false; // 用户信息不存在
     }
+    vector<Dish> readDishesFromFile(const string& filename) const {
+        vector<Dish> dishes;
+        ifstream infile(filename);
+        if (!infile) {
+            cerr << "Error opening file." << endl;
+            return dishes;
+        }
+
+        string line;
+        string dish_name;
+        int dish_id;
+        double dish_price;
+        string dish_ingredients;
+        double dish_cost;
+        while (getline(infile, line)) {
+            if (line.find("Dish Name: ") != string::npos) {
+                dish_name = line.substr(11);
+                getline(infile, line);
+                dish_id = stoi(line.substr(9));
+                getline(infile, line);
+                dish_price = stod(line.substr(7));
+                getline(infile, line);
+                dish_ingredients = line.substr(14);
+                getline(infile, line);
+                dish_cost = stod(line.substr(6));
+
+                Dish dish(dish_name, dish_id, dish_price, dish_ingredients, dish_cost);
+                dishes.push_back(dish);
+            }
+        }
+
+        infile.close();
+        return dishes;
+    }
+
+    void print_dish_menu(const string& filename) const{
+        vector<Dish> dishes = readDishesFromFile(filename);
+        cout << "Dish Menu:" << endl;
+        for (const auto& dish : dishes) {
+            dish.getDishInfo();
+            cout << endl;
+        }
+    }
 };
 
 class Manager : public User {
@@ -124,16 +289,14 @@ public:
         return password;
     }
     void writeToFile(ofstream& userinfo_filename) {
+        userinfo_filename << "Usertype: " << "Manager" << endl;
         userinfo_filename << "Username: " << username << endl;
         userinfo_filename << "Email: " << email << endl;
         userinfo_filename << "Age: " << age << endl;
         userinfo_filename << "Password: " << password << endl;
         userinfo_filename << endl;
     }
-    
-    void print_dish_menu(ifstream& dish_file) {
 
-    }
 };
 
 class Chef : public User {
@@ -157,6 +320,7 @@ public:
         return password;
     }
     void writeToFile(ofstream& userinfo_filename) {
+        userinfo_filename << "Usertype: " << "Chef" << endl;
         userinfo_filename << "Username: " << username << endl;
         userinfo_filename << "Email: " << email << endl;
         userinfo_filename << "Age: " << age << endl;
@@ -199,41 +363,6 @@ public:
         dishFile.close(); // 关闭文件
     }
 
-    vector<Dish> readDishesFromFile(const string& filename) const {
-        vector<Dish> dishes;
-        ifstream infile(filename);
-        if (!infile) {
-            cerr << "Error opening file." << endl;
-            return dishes;
-        }
-
-        string line;
-        string dish_name;
-        int dish_id;
-        double dish_price;
-        string dish_ingredients;
-        double dish_cost;
-        while (getline(infile, line)) {
-            if (line.find("Dish Name: ") != string::npos) {
-                dish_name = line.substr(11);
-                getline(infile, line);
-                dish_id = stoi(line.substr(9));
-                getline(infile, line);
-                dish_price = stod(line.substr(7));
-                getline(infile, line);
-                dish_ingredients = line.substr(14);
-                getline(infile, line);
-                dish_cost = stod(line.substr(6));
-
-                Dish dish(dish_name, dish_id, dish_price, dish_ingredients, dish_cost);
-                dishes.push_back(dish);
-            }
-        }
-
-        infile.close();
-        return dishes;
-    }
-
     void deleteDish(int dish_id) {
         vector<Dish> dishes = readDishesFromFile("Dish.txt");
         bool found = false;
@@ -261,7 +390,30 @@ public:
     }
 };
 
+void updateMaxOrderIDFile(int newMaxOrderID) {
+    ofstream file("MaxOrderID.txt");
+    if (file.is_open()) {
+        file << newMaxOrderID;  // 写入新的最大OrderID
+        file.close();
+    } else {
+        cerr << "Unable to open MaxOrderID.txt for writing." << endl;
+    }
+}
+
+int getMaxOrderID() {
+    ifstream file("MaxOrderID.txt");
+    int maxOrderID = 0;  // 默认OrderID从1开始，如果文件不存在或为空
+    if (file.is_open()) {
+        file >> maxOrderID;  // 读取最大OrderID
+        file.close();
+    }
+    return maxOrderID;
+}
+
 class Customer : public User {
+private:
+    vector<Order> orders;
+
 public:
     Customer(string uname, string mail, int user_age) : User(uname, mail, user_age) {
         if(!userInfoExists(userinfo_filename)) {
@@ -270,7 +422,52 @@ public:
                 cerr << "Error opening file." << endl;
             }else{
                 writeToFile(ofile);
-                customer_operating_UI();
+
+            }
+        }
+        loadOrdersFromFile("orders.txt");
+    }
+
+    void loadOrdersFromFile(const string& filename) {
+        ifstream file(filename);
+        if (!file.is_open()) {
+            cerr << "Unable to open the file: " << filename << endl;
+            return;
+        }
+
+        string line, key, value, email, time_;
+        int orderID, year, month, day, dishID;
+        double price, cost;
+        bool paid;
+
+        while (getline(file, line)) {
+            if (line.empty()) continue; // Skip empty lines
+
+            size_t colonPos = line.find(':');
+            if (colonPos != string::npos) {
+                key = line.substr(0, colonPos);
+                value = line.substr(colonPos + 1);
+                if (!value.empty() && value.front() == ' ') {
+                    value.erase(0, 1); // Remove leading space
+                }
+                if (!value.empty() && value.front() == ' ') value.erase(0, 1); // Remove leading space
+
+                if (key == "Email") email = value;
+                else if (key == "ID") orderID = stoi(value);
+                else if (key == "Year") year = stoi(value);
+                else if (key == "Month") month = stoi(value);
+                else if (key == "Day") day = stoi(value);
+                else if (key == "Time") time_ = value;
+                else if (key == "Dish ID") dishID = stoi(value);
+                else if (key == "Price") price = stod(value);
+                else if (key == "Cost") cost = stod(value);
+                else if (key == "Paid") paid = stoi(value);
+
+                if (file.peek() == '\n' || file.peek() == EOF) { // Check for end of order
+                    if (this->email == email) { // Only load orders for the specified customer
+                        orders.push_back(Order(orderID, email, year, month, day, time_, dishID, price, cost, paid));
+                    }
+                }
             }
         }
     }
@@ -280,51 +477,146 @@ public:
         User::getUserInfo();
     }
 
-    void editUserInfo() override {
+    void editUserInfo() override {     //是否保留
         cout << "Editing Customer Information:" << endl;
         User::editUserInfo();
     }
     void writeToFile(ofstream& userinfo_filename) override {
+        userinfo_filename << "Usertype: " << "Customer" << endl;
         userinfo_filename << "Username: " << username << endl;
         userinfo_filename << "Email: " << email << endl;
         userinfo_filename << "Age: " << age << endl;
         userinfo_filename << endl;
     }
 
-    // void customer_operating_UI(){
-    //     print_dish_menu();
-    // }
+
+    void orderdish(const string& filename, int dish_ID){
+        vector<Dish> dishes = readDishesFromFile(filename);
+        // 遍历 dishes 向量中的每个 Dish 对象
+        for (const Dish& dish : dishes) {
+            // 检查当前 Dish 对象的 ID 是否与目标 ID 相匹配
+            if (dish.getId() == dish_ID) {
+
+                time_t curtime = time(nullptr);
+                tm *nowtime = localtime(&curtime);
+                if (nowtime == nullptr) {
+                    cerr << "Local time could not be retrieved." << endl;
+                    return;
+                }
+                int currentMaxOrderID = getMaxOrderID();
+                int newOrderID = currentMaxOrderID + 1;  // 生成新的OrderID
+                orders.push_back(Order(newOrderID, email, 1900 + nowtime->tm_year, 1 + nowtime->tm_mon, nowtime->tm_mday, to_string(nowtime->tm_hour) + ':' + to_string(nowtime->tm_min) + ':' + to_string(nowtime->tm_sec), dish_ID, dish.getPrice(), dish.getCost(), false));
+                updateMaxOrderIDFile(newOrderID);  // 更新最大OrderID文件
+                cout << "Dish ordered successfully." << endl;
+                return;
+            }
+        }
+        cout << "Dish not found" << endl;
+    }
+
+    void showOrders(bool showOnlyNotPaid) {
+        cout << "Displaying " << (showOnlyNotPaid ? "unpaid" : "all") << " orders:" << endl;
+        for (const Order& order : orders) {
+            if (showOnlyNotPaid && order.isPaid()) {
+                continue;  // 如果只显示未支付订单，跳过已支付的订单
+            }
+            order.displayOrderDetails();
+            cout << endl;  // 在订单之间添加空行以提高可读性
+        }
+    }
+
+    void pay() {
+        double totalDue = 0;
+        vector<Order*> unpaidOrders;
+
+        // Calculate total due for unpaid orders
+        for (Order& order : orders) {
+            if (!order.isPaid()) {
+                totalDue += order.getPrice();
+                unpaidOrders.push_back(&order);
+            }
+        }
+
+        cout << "Total amount due: $" << totalDue << endl;
+        if (totalDue == 0) {
+            cout << "No outstanding payments." << endl;
+            return;
+        }
+
+        cout << "Do you want to proceed with payment? (Y/N): ";
+        char confirmation;
+        cin >> confirmation;
+
+        if (confirmation == 'Y' || confirmation == 'y') {
+            for (Order* order : unpaidOrders) {
+                // First delete the existing order from the file
+                order->deleteOrderFromFile("orders.txt");
+
+                // Update the order to paid
+                order->setPaid(true);
+
+                // Write the updated order back to the file
+                order->writeToFile("orders.txt");
+            }
+            cout << "Payment successful." << endl;
+        } else {
+            cout << "Payment cancelled." << endl;
+        }
+    }
 };
 
-// bool authenticate(User* user) {
-//     // 只有Manager和Chef需要密码验证
-//     if (dynamic_cast<Manager*>(user) || dynamic_cast<Chef*>(user)) {
-//         string correctPassword = user->getPassword();
-//         string inputPassword;
-//         int attempts = 0;
-//         while (attempts < 3) {
-//             cout << "Enter your password: ";
-//             cin >> inputPassword;
-//             if (inputPassword == correctPassword) {
-//                 return true;
-//             }
-//             else {
-//                 attempts++;
-//                 cout << "Incorrect password. Please try again." << endl;
-//             }
-//         }
-//         cout << "Too many incorrect attempts. Exiting..." << endl;
-//         return false;
-//     }
-//     return true; // Customer不需要密码验证
-// }
+void printCustomerMenu() {
+    cout << "\nMenu:" << endl;
+    cout << "1. show dish menu" << endl;
+    cout << "2. order" << endl;
+    cout << "3. display orders not paid" << endl;
+    cout << "4. display all orders" << endl;
+    cout << "5. pay" << endl; // 添加新选项
+    cout << "6. Exit" << endl;
+    cout << "Enter your choice: ";
+}
 
-// void printMenu() {
-//     cout << "\nMenu:" << endl;
-//     cout << "1. Edit User Info" << endl;
-//     cout << "2. Exit" << endl;
-//     cout << "Enter your choice: ";
-// }
+void customerMenu(User* user) {
+    int menuChoice;
+    do {
+        printCustomerMenu();
+        cin >> menuChoice;
+        switch (menuChoice) {
+        case 1:{
+            user->print_dish_menu("Dish.txt");
+            break;
+        }
+        case 2: {
+            int dishId;
+            cout << "Enter Dish ID to order: ";
+            cin >> dishId;
+            dynamic_cast<Customer*>(user)->orderdish("Dish.txt",dishId);
+            break;
+        }
+        case 3:{
+            dynamic_cast<Customer*>(user)->showOrders(1); 
+            break;
+        }
+        case 4:{
+            dynamic_cast<Customer*>(user)->showOrders(0);
+            break;
+        }
+        case 5:{
+            dynamic_cast<Customer*>(user)->pay();
+            break;
+        }
+        case 6:{
+            cout << "Exiting Customer UI..." << endl;
+            break;
+        }
+        default:
+            cout << "Invalid choice. Please try again." << endl;
+        }
+    } while (menuChoice != 6);
+}
+
+
+
 void customer_logging(User* user){
         string input_name;
         string customor_email;
@@ -372,10 +664,13 @@ void customer_logging(User* user){
             cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
         }
         user = new Customer(input_name, customor_email, age); // from here start
+        customerMenu(user);
         system("cls");
 }
 
-void printMenu() {
+
+
+void printChefMenu() {
     cout << "\nMenu:" << endl;
     cout << "1. Edit User Info" << endl;
     cout << "2. Delete Dish" << endl;
@@ -387,7 +682,7 @@ void printMenu() {
 void ChefMenu(User* user) {
     int menuChoice;
     do {
-        printMenu();
+        printChefMenu();
         cin >> menuChoice;
         switch (menuChoice) {
         case 1:
@@ -449,8 +744,8 @@ void chef_logging(User* user){
         user->getUserInfo(); // 打印用户信息
 
         // 检查用户信息是否已存在
-        if (!user->userInfoExists("Person_Inf.txt")) {
-            ofstream outFile("Person_Inf.txt", ios::app);
+        if (!user->userInfoExists("userinfo.txt")) {
+            ofstream outFile("userinfo.txt", ios::app);
             if (!outFile) {
                 cerr << "Error opening file." << endl;
                 delete user;

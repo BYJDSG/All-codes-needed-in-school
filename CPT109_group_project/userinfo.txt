@@ -1,12 +1,6 @@
-Username: BYJ
-Email: 18734@gmail.com
-Age: 124
-
-Username: CQY
-Email: 17894@GMAIL.COM
-Age: 284
-
-Username: john
-Email: 17894@GMAIL.COM
-Age: 123
+Usertype: Chef
+Username: Rose
+Email: 123@gmail.com
+Age: 21
+Password: 654321
 
