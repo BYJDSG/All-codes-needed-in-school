@@ -1,0 +1,18 @@
+Dish Name: icecream
+Dish ID: 1
+Price: 40
+Ingredients: sweet
+Cost: 10
+
+Dish Name: salad
+Dish ID: 2
+Price: 30
+Ingredients: fresh
+Cost: 10
+
+Dish Name: fruit
+Dish ID: 3
+Price: 100
+Ingredients: fresh
+Cost: 20
+
