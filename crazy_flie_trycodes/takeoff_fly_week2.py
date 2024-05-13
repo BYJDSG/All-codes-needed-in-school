@@ -47,33 +47,23 @@ from cflib.positioning.motion_commander import MotionCommander
 import matplotlib.pyplot as plt
 import cv2
 
-
-import serial
-
-
-
 # URI to the Crazyflie to connect to
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 
 # Change the sequence according to your setup
 #             x    y    z
-# sequence = [
-#     (0.0, 0.0, 0.5),
-#     #(0, 2, 0.5),# position 1
-#     #(10, 2, 0.5),# position 2
-#     #(0, 0, 0.2),
-# ]
+sequence = [
+    (0.0, 0.0, 0.5),
+    #(0, 2, 0.5),# position 1
+    #(10, 2, 0.5),# position 2
+    #(0, 0, 0.2),
+]
 
 global position_estimate
 global euler_estimate
-global data
-global bluetoothSerial
 position_estimate = [0, 0, 0]
 euler_estimate = [0, 0, 0]
-data = ''
-bluetoothSerial = serial.Serial('/dev/ttyS0', baudrate=9600, timeout=1)
-
 global pos_x,pos_y,pos_z
 pos_x = []
 pos_y = []
@@ -85,48 +75,41 @@ yaw = []
 global cf_timestamp
 cf_timestamp = []
 
-def get_glove_info():
-    pass
 
-def run_sequence(scf, base_x, base_y, base_z, yaw):
+
+def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
     cf = scf.cf
-    try:
-        while True:
-            if bluetoothSerial.inWaiting() > 0:
-                data = bluetoothSerial.readline().decode('utf-8').rstrip()
-                position = analyzedata(data)
-                print('Setting position {}'.format(position))
-                x = position[0] + base_x
-                y = position[1] + base_y
-                z = position[2] #+ base_z * 0.0
 
-                #important!! needs init
-                # cf.commander.send_setpoint(roll = 0, pitch = 0, yawrate = 0, thrust = 0)
-                for i in range(500):
-                    # change the following line#
-                    cf.commander.send_hover_setpoint(vx = 0.2 * (x - position_estimate[0]), vy =  0.2 * (y - position_estimate[1]), yawrate = 0, zdistance = 0.5)
-                    
+    for position in sequence:
+        print('Setting position {}'.format(position))
 
-                    time.sleep(0.05)
-                    cf.commander.send_zdistance_setpoint(roll = -0.06*euler_estimate[0], pitch = -0.06*euler_estimate[1], yawrate = - euler_estimate[2], zdistance = 0.5)
-                    time.sleep(0.1)
-                    # x_for_first_command = position_estimate[0]
-                    # y_for_first_command = position_estimate[1]
-                    print(i)
-                    
+        x = position[0] + base_x
+        y = position[1] + base_y
+        z = position[2] #+ base_z * 0.0
+
+        #important!! needs init
+        # cf.commander.send_setpoint(roll = 0, pitch = 0, yawrate = 0, thrust = 0)
+        for i in range(500):
+            # change the following line#
+            cf.commander.send_hover_setpoint(vx = 0.2 * (x - position_estimate[0]), vy =  0.2 * (y - position_estimate[1]), yawrate = 0, zdistance = 0.5)
+            
+            
+            time.sleep(0.05)
             cf.commander.send_zdistance_setpoint(roll = -0.06*euler_estimate[0], pitch = -0.06*euler_estimate[1], yawrate = - euler_estimate[2], zdistance = 0.5)
-            time.sleep(1)
-            # cf.commander.send_stop_setpoint()
-            # # Hand control over to the high level commander to avoid timeout and locking of the Crazyflie
-            # cf.commander.send_notify_setpoint_stop()
+            time.sleep(0.1)
+            x_for_first_command = position_estimate[0]
+            y_for_first_command = position_estimate[1]
+            print(i)
+            
+    cf.commander.send_setpoint(roll = 0, pitch = 0, yawrate = 0, thrust = 0) #compensate for error in rp
+    time.sleep(1)
+    cf.commander.send_stop_setpoint()
+    # Hand control over to the high level commander to avoid timeout and locking of the Crazyflie
+    cf.commander.send_notify_setpoint_stop()
 
-            # # Make sure that the last packet leaves before the link is closed
-            # # since the message queue is not flushed before closing
-            # time.sleep(1)
-            # time.sleep(0.1)
-    except KeyboardInterrupt:
-        bluetoothSerial.close()  # 确保端口被正确关闭
-
+    # Make sure that the last packet leaves before the link is closed
+    # since the message queue is not flushed before closing
+    time.sleep(1)
 
 
 def run_takeoff(scf):
@@ -201,7 +184,6 @@ if __name__ == '__main__':
 
         input("Press Enter to continue log_pos...")
 
-
         scf.cf.param.set_value('kalman.resetEstimation', '1')
         time.sleep(0.1)
         scf.cf.param.set_value('kalman.resetEstimation', '0')
@@ -232,7 +214,7 @@ if __name__ == '__main__':
 
 
         # run set points (sequence)
-        run_sequence(scf, initial_x, initial_y, initial_z, initial_yaw)
+        run_sequence(scf, sequence, initial_x, initial_y, initial_z, initial_yaw)
         # move_linear_simple(scf) # MotionCommand  need EKF prob
         # time.sleep(5)
 

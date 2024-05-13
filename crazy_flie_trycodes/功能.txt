@@ -1,0 +1,76 @@
+功能：
+分为两种模式：
+1. 张开手，上抬飞机起飞（上升），下放下降，前后移动代表飞机前后移动，左右摆动手套代表航向角的变化，左右移动手套代表飞机左右移动
+2. 握拳后，伸出食指代表飞机在空中画圆，伸出中指代表飞机降落，伸出拇指代表飞机向前冲刺10米。
+
+分工：
+yyk：手套imu部分代码
+fhr：手套电位计部分代码
+byj：PC端
+gcx：串口助手
+
+假设信息顺序:MODE, X_acc(右正), Y_acc(前正), Z_acc(上正), gloveRoll(逆正), glovePitch(逆正), gloveYaw(逆正)
+
+Codes:
+
+command_counter = 0
+times_need_to_send = 50
+command_sequence = []  //填充各种对应操作的sequence
+signal_history = []
+
+actions = {
+    (1, True, True, True, True, False): sequence1,
+    (2, False, True, False, True, True): sequence2,
+    # 更多的信号模式和对应的行动
+}
+
+def find_stable_signal(signal_history, required_stable_count):
+    if len(signal_history) < required_stable_count:
+        return None
+
+    # 检查每个可能的信号模式是否在历史中稳定
+    for signal_pattern in set(signal_history):
+        if signal_history.count(signal_pattern) >= required_stable_count:
+            return signal_pattern
+    return None
+
+def update_signal_history(signal_history, new_signal, max_history_length):
+    # 在列表的开始位置插入新的信号
+    signal_history.insert(0, tuple(new_signal))
+    
+    # 如果历史记录的长度超过了设定的最大长度，则移除最旧的信号（列表末尾的元素）
+    if len(signal_history) > max_history_length:
+        signal_history.pop()
+
+def read_signal():
+    data_from_com = bluetoothSerial.readline().decode('utf-8').rstrip()
+    mode = data_from_com[0]
+    X_acc = 1 if data_from_com[1]
+    Y_acc = data_from_com[2]
+    Z_acc = data_from_com[3]
+    gloveRoll = data_from_com[4]
+    glovePitch = data_from_com[5]
+    gloveYaw = data_from_com[6]
+
+
+loop:
+    data_from_com = bluetoothSerial.readline().decode('utf-8').rstrip()
+    mode = data_from_com[0]
+    X_acc = data_from_com[1]
+    Y_acc = data_from_com[2]
+    Z_acc = data_from_com[3]
+    gloveRoll = data_from_com[4]
+    glovePitch = data_from_com[5]
+    gloveYaw = data_from_com[6]
+
+    current_signal = read_signal()  # 模拟读取当前信号
+    update_signal_history(signal_history, current_signal, max_history_length)
+
+    stable_signal = find_stable_signal(signal_history, required_stable_count)
+    if stable_signal and stable_signal in actions:
+        actions[stable_signal]()  # 执行与稳定信号对应的行动
+    else:
+        continue_action_safely()  # 继续安全操作或等待
+
+
+
