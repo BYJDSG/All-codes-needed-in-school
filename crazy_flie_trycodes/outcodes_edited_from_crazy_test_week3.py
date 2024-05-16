@@ -60,6 +60,7 @@ actions = {
     (0, 0, 0, 0, 0, 0, 0): sequence1,
     (0, 0, 0, 1, 1, 0, 0): sequence2,
     (0, 0, 0, 1, 0, 0, 0): sequence3,
+    (1, 0, 0, 0, 0, 0, 0): sequence0,
     # 更多的信号模式和对应的行动
 }
 
@@ -82,17 +83,31 @@ def update_signal_history(signal_history, new_signal, max_history_length):
         signal_history.pop()
 
 def read_signal(bluetoothSerial):
-    data_from_com = []
-    if bluetoothSerial.inWaiting() > 0:
-        data_from_com = bluetoothSerial.readline().decode('utf-8').rstrip()
-    mode = data_from_com[0]
-    X_acc = 1 if data_from_com[1] > 0.05  else -1 if data_from_com[1] < -0.05 else 0
-    Y_acc = 1 if data_from_com[2] > 0.05  else -1 if data_from_com[2] < -0.05 else 0
-    Z_acc = 1 if data_from_com[3] > 0.05  else -1 if data_from_com[3] < -0.05 else 0
-    gloveRoll = 1 if data_from_com[4] > 100 else 0
-    glovePitch = 1 if data_from_com[5] > 100 else 0
-    gloveYaw = 1 if data_from_com[6] > 100 else 0
-    return (mode, X_acc, Y_acc, Z_acc, gloveRoll, glovePitch, gloveYaw)
+    # 忽略第一个数据包
+    initial_line = bluetoothSerial.readline().decode('utf-8').rstrip()
+    # print("忽略第一个数据包:", initial_line)
+    
+    while True:
+        if bluetoothSerial.inWaiting() > 0:
+            # 读取数据包
+            data_line = bluetoothSerial.readline().decode('utf-8').rstrip()
+            data_from_com = data_line.split(',')
+            # 确保接收到的数据包长度是7（完整的数据包）
+            if len(data_from_com) == 7:
+                try:
+                    mode = int(float(data_from_com[0]))
+                    X_acc = 1 if float(data_from_com[1]) > 0.05 else -1 if float(data_from_com[1]) < -0.05 else 0
+                    Y_acc = 1 if float(data_from_com[2]) > 0.05 else -1 if float(data_from_com[2]) < -0.05 else 0
+                    Z_acc = 1 if float(data_from_com[3]) > 0.05 else -1 if float(data_from_com[3]) < -0.05 else 0
+                    gloveRoll = 1 if float(data_from_com[4]) > 100 else 0
+                    glovePitch = 1 if float(data_from_com[5]) > 100 else 0
+                    gloveYaw = 1 if float(data_from_com[6]) > 100 else 0
+                    return (mode, X_acc, Y_acc, Z_acc, gloveRoll, glovePitch, gloveYaw)
+                except ValueError:
+                    print("数据格式错误:", data_from_com)
+            else:
+                print("收到不完整的数据包:", data_from_com)
+        time.sleep(0.1)
 
 def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
     cf = scf.cf
@@ -128,12 +143,16 @@ def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
             cf.commander.send_zdistance_setpoint(roll = 0.0, pitch = 0.0, yawrate = 0.0, zdistance = z)
             time.sleep(0.05)
             print('num0',i, 'tar',x,y,'cmd',roll_cmd,pitch_cmd )
+
     if sequence == sequence0:
         cf.commander.send_setpoint(roll = 0, pitch = 0, yawrate = 0, thrust = 0) # motor down, sit
         cf.commander.send_stop_setpoint()
         cf.commander.send_notify_setpoint_stop()
         global loop_run
         loop_run = False
+
+
+
 def log_pos_callback(timestamp, data, logconf):
     print(timestamp)
     for name, value in data.items():
@@ -229,9 +248,11 @@ if __name__ == '__main__':
 
             stable_signal = find_stable_signal(signal_history, required_stable_count)
             if stable_signal and stable_signal in actions:
-                run_sequence(scf, actions[stable_signal], initial_x, initial_y, initial_z, initial_yaw) # 执行与稳定信号对应的行动
+                # run_sequence(scf, actions[stable_signal], initial_x, initial_y, initial_z, initial_yaw) # 执行与稳定信号对应的行动
+                time.sleep(1)
             else:
-                run_sequence(scf, sequence1, initial_x, initial_y, initial_z, initial_yaw)
+                # run_sequence(scf, sequence1, initial_x, initial_y, initial_z, initial_yaw)
+                time.sleep(1)
 
 
         # Make sure that the last packet leaves before the link is closed
