@@ -1,8 +1,2 @@
-yijun M 5000
-Computer N 5000
-yijun M 4817
-Computer N 4738
-yijun M 4555
-Computer N 4524
-yijun M 4344
-Computer N 4447
+ni M 5000 0
+Computer N 5000 0
