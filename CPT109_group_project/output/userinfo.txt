@@ -1,6 +1,0 @@
-Usertype: Chef
-Username: Rose
-Email: 123@gmail.com
-Age: 21
-Password: 654321
-
